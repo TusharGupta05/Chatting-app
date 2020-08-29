@@ -2,11 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:last_task/Screens/MessageStream.dart';
+import 'package:last_task/MessageStream.dart';
+import 'package:last_task/Screens/LoadingAlertDialog.dart';
 
 import '../Toast.dart';
 
-String email = "", s1 = "", s2 = "";
+String email = "";
+List<String> s = ["", ""];
 
 class Register extends StatelessWidget {
   @override
@@ -49,23 +51,34 @@ class Register extends StatelessWidget {
             SizedBox(
               height: 5,
             ),
-            PasswordTF(),
+            PasswordTF(
+              show: "Password",
+              i: 0,
+            ),
+            PasswordTF(
+              show: "Confirm Password",
+              i: 1,
+            ),
             RaisedButton(
               onPressed: () {
                 if (email.contains("@") && !email.contains(" ")) {
-                  if (s1 == s2 && s1.length >= 6) {
-                    Firestore.instance
+                  if (s.elementAt(0).compareTo(s.elementAt(1)) == 0 &&
+                      s.elementAt(0).length >= 6) {
+                    showLoaderDialog(context, "Please wait....");
+                    FirebaseFirestore.instance
                         .collection("Users")
-                        .document(email)
+                        .doc(email)
                         .get()
                         .then((value) {
                       if (value.exists) {
+                        Navigator.pop(context);
                         Toastit("User already registered...");
                       } else {
-                        Firestore.instance
+                        FirebaseFirestore.instance
                             .collection("Users")
-                            .document(email)
-                            .setData({"password": s1}).then((value) {
+                            .doc(email)
+                            .set({"password": s.elementAt(0)}).then((value) {
+                          Navigator.pop(context);
                           Toastit("Registered Successfully!!",
                               color: Colors.blueGrey);
                           MessageStream.sender = email;
@@ -75,14 +88,14 @@ class Register extends StatelessWidget {
                       }
                     });
                   } else {
-                    if (s1.length < 6)
+                    if (s.elementAt(0).length < 6)
                       Toastit(
                           "Password should contain atleast 6 characters...");
                     else
                       Toastit("Please confirm password...");
                   }
                 } else {
-                  Toastit("Email address should contain '@'");
+                  Toastit("Enter correct email address");
                 }
               },
               child: Text(
@@ -118,20 +131,23 @@ class Register extends StatelessWidget {
 }
 
 class PasswordTF extends StatefulWidget {
-  PasswordTF({Key key}) : super(key: key);
+  final int i;
+  final String show;
+
+  const PasswordTF({Key key, this.i, this.show}) : super(key: key);
 
   @override
   _PasswordTFState createState() => _PasswordTFState();
 }
 
 class _PasswordTFState extends State<PasswordTF> {
-  bool hidePass1 = true, hidePass2 = true;
+  bool hidePass = false;
   @override
   Widget build(BuildContext context) {
     return Container(
         child: Column(children: [
       TextField(
-        obscureText: hidePass1,
+        obscureText: hidePass,
         keyboardType: TextInputType.visiblePassword,
         cursorColor: Colors.green,
         decoration: InputDecoration(
@@ -141,65 +157,32 @@ class _PasswordTFState extends State<PasswordTF> {
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Colors.green[800])),
-          icon: Icon(
-            Icons.lock,
-            color: Colors.green,
+          icon: ImageIcon(
+            AssetImage("assets/images/lockicon.png"),
+            size: 25,
+            color: Colors.green[300],
           ),
           suffixIcon: IconButton(
-            icon: Icon(hidePass1 ? Icons.visibility : Icons.visibility_off),
+            icon: Icon(hidePass ? Icons.visibility_off : Icons.visibility),
             onPressed: () {
               setState(() {
-                hidePass1 = !hidePass1;
+                hidePass = !hidePass;
               });
             },
           ),
-          labelText: "Password",
+          labelText: widget.show,
           labelStyle: TextStyle(
             color: Colors.green[800],
             fontSize: 18,
           ),
         ),
         onChanged: (value) {
-          s1 = value == null ? "" : value;
+          s[widget.i] = value == null ? "" : value;
         },
         style: TextStyle(color: Colors.green[800], fontSize: 18),
       ),
       SizedBox(
         height: 5,
-      ),
-      TextField(
-        obscureText: hidePass2,
-        keyboardType: TextInputType.visiblePassword,
-        cursorColor: Colors.green,
-        decoration: InputDecoration(
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.green[800])),
-          focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.green[800])),
-          icon: Icon(
-            Icons.lock,
-            color: Colors.green,
-          ),
-          suffixIcon: IconButton(
-            icon: Icon(hidePass2 ? Icons.visibility : Icons.visibility_off),
-            onPressed: () {
-              setState(() {
-                hidePass2 = !hidePass2;
-              });
-            },
-          ),
-          labelText: "Confirm Password",
-          labelStyle: TextStyle(
-            color: Colors.green[800],
-            fontSize: 18,
-          ),
-        ),
-        onChanged: (value) {
-          s2 = value == null ? "" : value;
-        },
-        style: TextStyle(color: Colors.green[800], fontSize: 18),
       ),
     ]));
   }

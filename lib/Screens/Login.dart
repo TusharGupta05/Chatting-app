@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:last_task/Screens/MessageStream.dart';
+import 'package:last_task/MessageStream.dart';
 import 'package:last_task/Toast.dart';
+
+import 'LoadingAlertDialog.dart';
 
 String email = "", password = "";
 
@@ -18,7 +20,6 @@ class Login extends StatelessWidget {
           style: TextStyle(color: Colors.white),
         ),
       ),
-      resizeToAvoidBottomPadding: false,
       body: Stack(children: [
         Padding(
           padding: const EdgeInsets.only(left: 20.0, right: 20.0),
@@ -60,22 +61,24 @@ class Login extends StatelessWidget {
                           email.contains("@") &&
                           password != null &&
                           password.length >= 6) {
-                        Firestore.instance
+                        showLoaderDialog(context, "Checking credentials....");
+                        FirebaseFirestore.instance
                             .collection("Users")
-                            .document(email)
+                            .doc(email)
                             .get()
                             .then((value) {
+                          Navigator.pop(context);
                           if (value.exists) {
-                            if (value.data.containsValue(password)) {
+                            if (value.data().containsValue(password)) {
                               Toastit("Login Successful!!",
                                   color: Colors.blueGrey);
                               MessageStream.sender = email;
                               Navigator.of(context).pushReplacementNamed(
-                                  "/UsersList",
-                                  arguments: email);
+                                "/UsersList",
+                              );
                             } else {
                               Toastit(
-                                "Please check password...",
+                                "Wrong password...",
                               );
                             }
                           } else {
@@ -120,63 +123,6 @@ class Login extends StatelessWidget {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 60.0, right: 60.0, bottom: 30),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RaisedButton(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)),
-                onPressed: () => null,
-                color: Colors.green,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 5.0),
-                      child: Image.asset(
-                        'assets/images/googleicon.png',
-                        color: Colors.green[200],
-                        height: 22,
-                        width: 22,
-                      ),
-                    ),
-                    Text(
-                      "Signin with Google",
-                      style: TextStyle(color: Colors.white),
-                    )
-                  ],
-                ),
-              ),
-              RaisedButton(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)),
-                onPressed: () => null,
-                color: Colors.green,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 5.0),
-                      child: Image.asset(
-                        'assets/images/fbicon.png',
-                        color: Colors.green[200],
-                        height: 18,
-                        width: 18,
-                      ),
-                    ),
-                    Text(
-                      "Signin with Facebook",
-                      style: TextStyle(color: Colors.white),
-                    )
-                  ],
-                ),
-              )
-            ],
-          ),
-        ),
       ]),
     );
   }
@@ -190,7 +136,7 @@ class PasswordTF extends StatefulWidget {
 }
 
 class _PasswordTFState extends State<PasswordTF> {
-  bool hidePass = true;
+  bool hidePass = false;
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -214,7 +160,7 @@ class _PasswordTFState extends State<PasswordTF> {
             color: Colors.green[300],
           ),
           suffixIcon: IconButton(
-            icon: Icon(hidePass ? Icons.visibility : Icons.visibility_off),
+            icon: Icon(hidePass ? Icons.visibility_off : Icons.visibility),
             onPressed: () {
               setState(() {
                 hidePass = !hidePass;
